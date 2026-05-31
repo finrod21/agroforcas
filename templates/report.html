@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Laporan {{ plant_info.label }}{% endblock %}
+
+{% block content %}
+  <article class="plant-header">
+    <h2>Laporan {{ plant_info.label }}</h2>
+    <p>{{ plant_info.description }}</p>
+    {% if plant_condition %}
+      <div class="condition-badge condition-{{ plant_condition | lower | replace(' ', '-') }}">
+        <strong>Status Kondisi:</strong> {{ plant_condition }}
+      </div>
+    {% endif %}
+    {% if growth_stage %}
+      <div class="prediction">Prediksi tahap pertumbuhan terakhir: <strong>{{ growth_stage }}</strong></div>
+    {% endif %}
+    {% if harvest_estimate is not none %}
+      <div class="prediction">Estimasi hari sampai panen: <strong>{{ harvest_estimate | round(1) }} hari</strong></div>
+    {% endif %}
+    {% if not growth_stage and harvest_estimate is none and not plant_condition %}
+      <div class="note">Belum ada data untuk menghasilkan prediksi.</div>
+    {% endif %}
+  </article>
+
+  {% if care_recommendations %}
+  <section class="recommendations-card">
+    <h3>🌱 Rekomendasi Perawatan</h3>
+    
+    <div class="recommendation-group">
+      <h4>💧 Penyiraman</h4>
+      <ul>
+        {% for rec in care_recommendations.watering %}
+          <li>{{ rec }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="recommendation-group">
+      <h4>🌾 Pemupukan</h4>
+      <ul>
+        {% for rec in care_recommendations.fertilizer %}
+          <li>{{ rec }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="recommendation-group">
+      <h4>⚙️ Tindakan Khusus</h4>
+      <ul>
+        {% for rec in care_recommendations.special_actions %}
+          <li>{{ rec }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="table-card">
+    <h3>Riwayat Mingguan</h3>
+    {% if records %}
+      <table>
+        <thead>
+          <tr>
+            <th>Minggu</th>
+            <th>Usia (hari)</th>
+            <th>Tinggi (cm)</th>
+            <th>Daun</th>
+            <th>Kelembapan (%)</th>
+            <th>Suhu (°C)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in records %}
+            <tr>
+              <td>{{ row.week }}</td>
+              <td>{{ row.age_days }}</td>
+              <td>{{ row.height_cm }}</td>
+              <td>{{ row.leaf_count }}</td>
+              <td>{{ row.humidity_pct }}</td>
+              <td>{{ row.temperature_c }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>Belum ada catatan mingguan untuk tanaman ini.</p>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Beranda - AgroForcast AI Dashboard{% endblock %}
+
+{% block content %}
+  <section style="margin-bottom: 2.5rem; text-align: center; max-width: 800px; margin-inline: auto;">
+    <h2 style="font-family: var(--font-logo); font-size: 2.2rem; font-weight: 700; margin-bottom: 0.75rem; letter-spacing: -0.5px; background: linear-gradient(135deg, #fff 30%, var(--text-secondary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">📊 Dashboard Tanaman Cerdas</h2>
+    <p style="color: var(--text-secondary); margin: 0; font-size: 1.05rem;">Kelola, prediksi, dan pantau pertumbuhan tanaman hortikultura Anda menggunakan analisis kecerdasan buatan terintegrasi.</p>
+  </section>
+
+  <section class="grid">
+    {% for key, plant in plants.items() %}
+      <article class="card">
+        <div style="font-size: 3rem; margin-bottom: 1rem; filter: drop-shadow(0 0 15px rgba(16,185,129,0.3));">
+          {% if key == 'cabai' %}🌶️{% elif key == 'tomat' %}🍅{% else %}🍆{% endif %}
+        </div>
+        <h2>{{ plant.label }}</h2>
+        <p style="margin-bottom: 1.5rem;">{{ plant.description }}</p>
+        <div class="data-banner">
+          <p>📅 Data tersimpan: <span>{{ data[key] | length }}</span> minggu</p>
+        </div>
+        <div class="actions">
+          <a class="button" href="{{ url_for('plant_page', plant_name=key) }}" style="flex: 1; text-align: center;">👁️ Lihat Detail</a>
+          <a class="button secondary" href="{{ url_for('report', plant_name=key) }}" style="flex: 1; text-align: center;">📈 Laporan</a>
+        </div>
+      </article>
+    {% endfor %}
+  </section>
+
+  <section id="petunjuk" class="guide-container">
+    <h3>💡 Panduan Penggunaan AgroForcast</h3>
+    <div class="guide-grid">
+      <div class="guide-card">
+        <p class="title">1️⃣ Pilih Tanaman</p>
+        <p class="desc">Pilih komoditas tanaman Anda di atas lalu klik "Lihat Detail" untuk masuk ke halaman pencatatan data harian.</p>
+      </div>
+      <div class="guide-card">
+        <p class="title">2️⃣ Catat Perkembangan</p>
+        <p class="desc">Masukkan data ukuran tinggi, jumlah daun, suhu, dan kelembapan secara berkala setiap minggunya.</p>
+      </div>
+      <div class="guide-card">
+        <p class="title">3️⃣ Prediksi AI & Rekomendasi</p>
+        <p class="desc">Sistem AI akan menganalisis skor kesehatan, mendeteksi fase tumbuh, mengestimasi hari panen, dan memberi panduan perawatan.</p>
+      </div>
+    </div>
+  </section>
+{% endblock %}

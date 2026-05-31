@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ plant_info.label }} - Aplikasi Pertanian{% endblock %}
+
+{% block content %}
+  <div style="margin-bottom: 2rem;">
+    <a href="{{ url_for('index') }}" style="color: #3c763d; text-decoration: none; font-weight: 600;">← Kembali ke Beranda</a>
+  </div>
+
+  <article class="plant-header">
+    <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">
+      {% if plant_name == 'cabai' %}🌶️{% elif plant_name == 'tomat' %}🍅{% else %}🍆{% endif %}
+    </div>
+    <h2>{{ plant_info.label }}</h2>
+    <p style="color: #666; line-height: 1.6;">{{ plant_info.description }}</p>
+    {% if plant_condition %}
+      <div class="condition-badge condition-{{ plant_condition | lower | replace(' ', '-') }}" style="margin-top: 1rem;">
+        <strong>📊 Status Kondisi:</strong> {{ plant_condition }}
+      </div>
+    {% endif %}
+    {% if prediction %}
+      <div class="prediction" style="margin-top: 1rem;">
+        <strong>🌿 Tahap Pertumbuhan:</strong> {{ prediction }}
+      </div>
+    {% endif %}
+    {% if harvest_estimate is not none %}
+      <div class="prediction" style="margin-top: 0.5rem;">
+        <strong>⏱️ Estimasi Panen:</strong> {{ harvest_estimate | round(1) }} hari
+      </div>
+    {% endif %}
+  </article>
+
+  <div class="detail-grid">
+    <section class="form-card">
+      <h3>📝 Catat Data Mingguan</h3>
+      <form action="{{ url_for('save_record') }}" method="post">
+        <input type="hidden" name="plant_name" value="{{ plant_name }}" />
+        
+        <label>Minggu</label>
+        <input name="week" type="text" placeholder="Contoh: Minggu 1" required />
+        
+        <label>Usia tanaman (hari)</label>
+        <input name="age_days" type="number" min="0" required />
+        
+        <label>Tinggi tanaman (cm)</label>
+        <input name="height_cm" type="number" step="0.1" min="0" required />
+        
+        <label>Jumlah daun</label>
+        <input name="leaf_count" type="number" min="0" required />
+        
+        <label>Kelembapan (%)</label>
+        <input name="humidity_pct" type="number" step="0.1" min="0" max="100" required />
+        
+        <label>Suhu (°C)</label>
+        <input name="temperature_c" type="number" step="0.1" required />
+        
+        <button type="submit">💾 Simpan Data</button> 
+      </form>
+    </section>
+
+    {% if care_recommendations %}
+    <section class="recommendations-card">
+      <h3>🌱 Rekomendasi Perawatan</h3>
+      
+      <div class="recommendation-group">
+        <h4>💧 Penyiraman</h4>
+        <ul>
+          {% for rec in care_recommendations.watering %}
+            <li>{{ rec }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="recommendation-group">
+        <h4>🌾 Pemupukan</h4>
+        <ul>
+          {% for rec in care_recommendations.fertilizer %}
+            <li>{{ rec }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="recommendation-group">
+        <h4>⚙️ Tindakan Khusus</h4>
+        <ul>
+          {% for rec in care_recommendations.special_actions %}
+            <li>{{ rec }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+    {% endif %}
+  </div>
+
+  <section class="table-card">
+    <h3>Riwayat Perkembangan</h3>
+    {% if records %}
+      <table>
+        <thead>
+          <tr>
+            <th>Minggu</th>
+            <th>Usia (hari)</th>
+            <th>Tinggi (cm)</th>
+            <th>Daun</th>
+            <th>Kelembapan (%)</th>
+            <th>Suhu (°C)</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in records %}
+            <tr>
+              <td>{{ row.week }}</td>
+              <td>{{ row.age_days }}</td>
+              <td>{{ row.height_cm }}</td>
+              <td>{{ row.leaf_count }}</td>
+              <td>{{ row.humidity_pct }}</td>
+              <td>{{ row.temperature_c }}</td>
+              <td>
+                <form action="{{ url_for('delete_record', plant_name=plant_name, record_idx=loop.index0) }}" method="post" style="display:inline; margin:0; padding:0;">
+                  <button type="submit" class="button secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color:#fff; border-radius:8px; border:none; box-shadow:none;">🗑️ Hapus</button>
+                </form>
+              </td>
+            </tr> 
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>Belum ada catatan perkembangan untuk tanaman ini.</p>
+    {% endif %}
+  </section>
+{% endblock %}

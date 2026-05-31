@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# Logs and databases
+*.log
+data/weekly_data.json
+
+# Local config and system files
+.antigravitycli/
+.DS_Store
+.streamlit/config.toml

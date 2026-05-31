@@ -1,0 +1,41 @@
+import csv
+
+rows = [
+    ['plant', 'age_days', 'height_cm', 'leaf_count', 'humidity_pct', 'temperature_c', 'condition', 'estimated_harvest_days'],
+    ['cabai', 14, 12.5, 8, 72, 28, 'Baik', 56],
+    ['cabai', 21, 18.0, 12, 69, 29, 'Baik', 49],
+    ['cabai', 28, 24.0, 18, 65, 30, 'Cukup', 42],
+    ['cabai', 35, 29.5, 22, 63, 30, 'Baik', 35],
+    ['cabai', 42, 34.0, 26, 61, 29, 'Baik', 28],
+    ['cabai', 49, 38.5, 30, 58, 29, 'Baik', 21],
+    ['cabai', 56, 42.7, 35, 55, 28, 'Cukup', 14],
+    ['cabai', 63, 46.0, 40, 53, 27, 'Sangat Baik', 7],
+    ['cabai', 70, 50.2, 44, 50, 27, 'Baik', 0],
+    ['cabai', 77, 53.1, 48, 48, 26, 'Baik', 0],
+    ['tomat', 10, 8.0, 6, 75, 26, 'Baik', 50],
+    ['tomat', 18, 15.3, 12, 72, 27, 'Baik', 42],
+    ['tomat', 25, 22.0, 18, 70, 28, 'Cukup', 35],
+    ['tomat', 32, 29.0, 24, 68, 28, 'Baik', 28],
+    ['tomat', 40, 36.5, 30, 65, 27, 'Baik', 20],
+    ['tomat', 48, 41.8, 34, 62, 26, 'Baik', 12],
+    ['tomat', 56, 47.2, 39, 60, 26, 'Cukup', 4],
+    ['tomat', 63, 51.5, 44, 58, 25, 'Sangat Baik', 0],
+    ['tomat', 70, 54.0, 48, 55, 25, 'Baik', 0],
+    ['tomat', 78, 57.0, 52, 52, 24, 'Baik', 0],
+    ['terong', 12, 10.5, 7, 70, 27, 'Cukup', 70],
+    ['terong', 20, 16.8, 13, 68, 28, 'Baik', 62],
+    ['terong', 28, 23.2, 19, 66, 29, 'Baik', 54],
+    ['terong', 36, 29.0, 25, 63, 29, 'Baik', 46],
+    ['terong', 44, 34.0, 30, 60, 28, 'Baik', 38],
+    ['terong', 52, 38.5, 34, 58, 27, 'Cukup', 30],
+    ['terong', 60, 43.0, 38, 56, 26, 'Baik', 22],
+    ['terong', 68, 47.5, 42, 54, 26, 'Baik', 14],
+    ['terong', 76, 51.8, 46, 52, 25, 'Sangat Baik', 6],
+    ['terong', 84, 55.5, 50, 50, 25, 'Baik', 0],
+]
+
+with open('data/plant_dataset.csv', 'w', newline='', encoding='utf-8') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerows(rows)
+
+print('Dataset disimpan di data/plant_dataset.csv')
