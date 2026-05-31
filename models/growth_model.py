@@ -1,13 +1,15 @@
 import os
+import json
 from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 
 BASE_DIR = os.path.dirname(__file__)
 CSV_PATH = os.path.normpath(os.path.join(BASE_DIR, '..', 'data', 'plant_dataset.csv'))
 MODEL_PATH = os.path.join(BASE_DIR, 'saved_model.keras')
+WEIGHTS_PATH = os.path.join(BASE_DIR, 'model_weights.json')
+
 CONDITION_MAP = {
     'Cukup': 0, 'Baik': 1, 'Sangat Baik': 2,
     'Sehat': 2, 'Cukup Baik': 1, 'Perlu Perhatian': 0
@@ -15,6 +17,7 @@ CONDITION_MAP = {
 
 _MODEL_CACHE = None
 _FEATURE_COLUMNS_CACHE = None
+_WEIGHTS_CACHE = None
 
 
 def load_dataset(csv_path: str = CSV_PATH) -> pd.DataFrame:
@@ -35,7 +38,7 @@ def load_dataset(csv_path: str = CSV_PATH) -> pd.DataFrame:
     return df
 
 
-def preprocess_data(df: pd.DataFrame) -> Tuple[tf.Tensor, tf.Tensor, List[str]]:
+def preprocess_data(df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray, List[str]]:
     df = df.copy()
     df['condition'] = df['condition'].map(CONDITION_MAP).fillna(0).astype(np.float32)
     df = pd.get_dummies(df, columns=['plant'], prefix='plant')
@@ -53,10 +56,11 @@ def preprocess_data(df: pd.DataFrame) -> Tuple[tf.Tensor, tf.Tensor, List[str]]:
 
     X = df[feature_columns].astype(np.float32).to_numpy()
     y = df['estimated_harvest_days'].astype(np.float32).to_numpy()
-    return tf.convert_to_tensor(X), tf.convert_to_tensor(y), feature_columns
+    return X, y, feature_columns
 
 
-def build_model(input_dim: int) -> tf.keras.Model:
+def build_model(input_dim: int):
+    import tensorflow as tf
     normalizer = tf.keras.layers.Normalization(axis=-1)
     model = tf.keras.Sequential(
         [
@@ -69,11 +73,15 @@ def build_model(input_dim: int) -> tf.keras.Model:
     return model, normalizer
 
 
-def train_model(epochs: int = 120, batch_size: int = 8, validation_split: float = 0.2) -> tf.keras.Model:
+def train_model(epochs: int = 120, batch_size: int = 8, validation_split: float = 0.2):
+    import tensorflow as tf
     df = load_dataset()
     X, y, _ = preprocess_data(df)
     model, normalizer = build_model(X.shape[1])
-    normalizer.adapt(X)
+    
+    X_tensor = tf.convert_to_tensor(X)
+    y_tensor = tf.convert_to_tensor(y)
+    normalizer.adapt(X_tensor)
 
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
@@ -81,12 +89,13 @@ def train_model(epochs: int = 120, batch_size: int = 8, validation_split: float 
         metrics=['mae'],
     )
 
-    model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=validation_split, verbose=2)
+    model.fit(X_tensor, y_tensor, epochs=epochs, batch_size=batch_size, validation_split=validation_split, verbose=2)
     save_model(model)
     return model
 
 
-def save_model(model: tf.keras.Model, model_path: str = MODEL_PATH) -> None:
+def save_model(model, model_path: str = MODEL_PATH) -> None:
+    import tensorflow as tf
     global _MODEL_CACHE
     dirname = os.path.dirname(model_path)
     if dirname:
@@ -95,13 +104,24 @@ def save_model(model: tf.keras.Model, model_path: str = MODEL_PATH) -> None:
     _MODEL_CACHE = model
 
 
-def load_model(model_path: str = MODEL_PATH) -> tf.keras.Model:
+def load_model(model_path: str = MODEL_PATH):
+    import tensorflow as tf
     global _MODEL_CACHE
     if _MODEL_CACHE is None:
         if not os.path.exists(model_path):
             raise FileNotFoundError(f'Model file not found: {model_path}')
         _MODEL_CACHE = tf.keras.models.load_model(model_path)
     return _MODEL_CACHE
+
+
+def _get_weights():
+    global _WEIGHTS_CACHE
+    if _WEIGHTS_CACHE is None:
+        if not os.path.exists(WEIGHTS_PATH):
+            raise FileNotFoundError(f"Model weights file not found: {WEIGHTS_PATH}")
+        with open(WEIGHTS_PATH, 'r') as f:
+            _WEIGHTS_CACHE = json.load(f)
+    return _WEIGHTS_CACHE
 
 
 def get_feature_columns() -> List[str]:
@@ -149,7 +169,6 @@ def predict_harvest_days(
     condition: str,
     plant: str,
 ) -> float:
-    model = load_model()
     features = prepare_input_vector(
         age_days,
         height_cm,
@@ -159,16 +178,39 @@ def predict_harvest_days(
         condition,
         plant,
     )
-    prediction = model.predict(features, verbose=0)[0][0]
+    
+    # Load model weights from JSON
+    w_data = _get_weights()
+    norm_mean = np.array(w_data['normalization']['mean'], dtype=np.float32)
+    norm_var = np.array(w_data['normalization']['variance'], dtype=np.float32)
+    
+    dense_keys = sorted([k for k in w_data.keys() if k.startswith('dense')])
+    
+    # 1. Normalization
+    normalized = (features - norm_mean) / np.sqrt(norm_var + 1e-3)
+    
+    # 2. Dense layer 1 (ReLU)
+    w1 = np.array(w_data[dense_keys[0]]['weights'], dtype=np.float32)
+    b1 = np.array(w_data[dense_keys[0]]['bias'], dtype=np.float32)
+    h1 = np.maximum(np.dot(normalized, w1) + b1, 0.0)
+    
+    # 3. Dense layer 2 (ReLU)
+    w2 = np.array(w_data[dense_keys[1]]['weights'], dtype=np.float32)
+    b2 = np.array(w_data[dense_keys[1]]['bias'], dtype=np.float32)
+    h2 = np.maximum(np.dot(h1, w2) + b2, 0.0)
+    
+    # 4. Dense layer 3 / Output (Linear)
+    w3 = np.array(w_data[dense_keys[2]]['weights'], dtype=np.float32)
+    b3 = np.array(w_data[dense_keys[2]]['bias'], dtype=np.float32)
+    prediction = float(np.dot(h2, w3) + b3)
+    
     return float(max(prediction, 0.0))
 
 
 def predict_growth_stage(height_cm: float, leaf_count: int, health_score: float) -> str:
-    features = tf.constant([[height_cm, leaf_count, health_score]], dtype=tf.float32)
-    weights = tf.constant([[0.02], [0.04], [0.55]], dtype=tf.float32)
-    bias = tf.constant([0.18], dtype=tf.float32)
-    score = tf.matmul(features, weights) + bias
-    probability = tf.sigmoid(score)[0][0].numpy()
+    # Pure NumPy implementation of Sigmoid activation over linear regression score
+    score = height_cm * 0.02 + leaf_count * 0.04 + health_score * 0.55 + 0.18
+    probability = 1.0 / (1.0 + np.exp(-score))
 
     if probability < 0.35:
         return 'Tahap awal (persemaian & akar berkembang)'
