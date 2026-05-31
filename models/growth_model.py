@@ -202,7 +202,7 @@ def predict_harvest_days(
     # 4. Dense layer 3 / Output (Linear)
     w3 = np.array(w_data[dense_keys[2]]['weights'], dtype=np.float32)
     b3 = np.array(w_data[dense_keys[2]]['bias'], dtype=np.float32)
-    prediction = float(np.dot(h2, w3) + b3)
+    prediction = float((np.dot(h2, w3) + b3).item())
     
     return float(max(prediction, 0.0))
 
